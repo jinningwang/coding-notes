@@ -7,6 +7,7 @@ Personal coding notes
 1. [Python](./src/python.md)
 1. [Java for Python Developer](./src/java.md)
 1. [Microservices](./src/microservices.md)
+1. [Cloud Computing Core Concepts](./src/cloud-basics.md)
 
 ## License
 
