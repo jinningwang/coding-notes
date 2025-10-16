@@ -1,5 +1,25 @@
 # Java for Python Developer
 
+## Comparing common Java and Python terminologies
+
+| Concept                | Java Term                | Python Term            |
+|------------------------|--------------------------|------------------------|
+| Class variable         | static field             | class attribute        |
+| Instance variable      | field (non-static)       | instance attribute     |
+| Constant               | public static final      | constant (UPPERCASE)   |
+| Method                 | method                   | method                 |
+| Function (outside class)| (not allowed)           | function               |
+| Property (getter/setter)| property (via methods)  | @property decorator    |
+| Constructor            | constructor              | `__init__` method      |
+| Inheritance            | extends                  | subclassing            |
+| Interface              | interface                | abstract base class    |
+| Package/module         | package                  | module/package         |
+| Import                 | import                   | import                 |
+| Access modifier        | public/protected/private | (convention: _, __)    |
+| Static method          | static method            | @staticmethod          |
+| Class method           | (not common, use static) | @classmethod           |
+| Object reference       | this                     | self                   |
+
 ## 🔑 Key Concepts of Java
 
 ✅ Pros of Java
