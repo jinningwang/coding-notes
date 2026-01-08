@@ -2,108 +2,127 @@
 
 ## 🧠 Images, Containers, and Pods
 
-- 📦 **Images (The Blueprint):** A read-only template (like a recipe) containing the code, libraries, and environment needed to run an application.
-- 🏃 **Containers (The Instance):** A live, running instance of an image (like the dish cooked from a recipe). It is isolated but shares the host OS kernel.
-- 🛸 **Pods (The Wrapper):** The smallest deployable unit in Kubernetes. It can hold one or more containers that need to share network and storage.
+- 📦 **Images (The Blueprint)** A read-only template (like a recipe) containing the code, libraries, and environment needed to run an application.
+- 🏃 **Containers (The Instance)** A live, running instance of an image (like the dish cooked from a recipe). Containers are isolated processes but share the host OS kernel.
+- 🛸 **Pods (The Wrapper)** The smallest deployable unit in Kubernetes. It can hold one or more containers that must share: network (same IP), storage, and liftcycle.
 
 ### 📦 Docker Image
 
-An **Image** is an immutable (unchangeable) package.
-In your Java workflow, it bundles the `.jar` file produced by Maven with an OpenJDK runtime.
+An **Image** is an immutable package.
+In a Java workflow, an image typically bundles: 1) the `.jar` produced by Maven, 2) a Java runtime, 3) OS-level dependencies.
 
-- **Immutability:** Once built, an image doesn't change. This ensures "it works on my machine" translates to "it works in production."
-- **Layers:** Images are built in layers (OS -> Java -> App Code). If you only change the code, only the top layer is rebuilt, saving time.
+Key properties:
+
+- **Immutability:** Once built, an image doesn't change. This ensures "it works on my machine" => "it works in production."
+- **Layers:** Images are built in layers (OS -> Java -> App Code). If only application code changes, only the top layer is rebuilt. This sppeds up builds and recudes network transfer.
 
 ### 🛸 Pod vs. Container
 
-In Kubernetes (K8s), you don't manage containers directly; you manage **Pods**.
+In Kubernetes (K8s), you do **not** manage containers directly; you manage **Pods**.
 
-- **Single Container Pod:** The most common case (1 Pod = 1 Java App).
-- **Sidecar Pattern:** A Pod with multiple containers (e.g., 1 Java App + 1 Log Collector). They live and die together, sharing the same IP address.
-- **Resource Management:** You define hardware limits at the Pod level.
-    - `Requests`: The minimum resources (CPU/RAM) guaranteed to the Pod.
-    - `Limits`: The maximum resources the Pod is allowed to consume.
+Common patterns:
+
+- **Single Container Pod** The most common case (1 Pod = 1 Java App).
+- **Sidecar Pattern** A Pod with multiple containers (e.g., 1 Java App + 1 Log Collector). They live and die together, sharing the same IP address.
+- **Resource Management (Pod Level)** You define hardware limits at the Pod level. Resources limits are defined on Pods:
+    - `Requests`: The minimum guranted resources (CPU/RAM)
+    - `Limits`: The maximum allowed resource
 
 ### 🏭 Node vs. Cluster
 
 - **Node:** A single worker machine (Physical or VM) that runs Pods.
-- **Cluster:** A group of Nodes managed as a single system. It provides high availability—if one Node fails, the Cluster moves Pods to another.
+- **Cluster:** A group of Nodes managed as a single system. It provides:
+  - scheduling
+  - self-healing
+  - high availability  
 
 ## 🛠️ The Automation Toolchain (CI/CD)
 
-For an enterprise Java environment, these "software" tools work together in a synchronized pipeline:
+For an enterprise Java environment, these tools work together in a coordinated pipeline:
 
 | Tool | Role | Function |
 | :--- | :--- | :--- |
-| **GitHub Ent.** | SCM (Source Control) | Stores the Java source code and `Jenkinsfile` |
-| **Maven** | Build Tool | Compiles code, runs tests, and creates the `.jar` |
-| **Jenkins** | Orchestrator | The "Commander" that triggers the workflow stages |
-| **JFrog** | Artifact Manager | Stores the built `.jar` files and Docker Images |
-| **Helm** | K8s Package Manager | Packages and deploys application configs |
-| **Kubernetes** | Runtime Platform | The "Manager" that runs and scales the Pods |
+| **GitHub Ent.** | SCM (Source Control) | Stores the Java source code, Jenkinsfile, and Helm charts |
+| **Maven** | Build Tool | Compiles code, runs tests, produces the `.jar` |
+| **Jenkins** | Orchestrator | Drive the CI/CD workflow |
+| **JFrog** | Artifact Manager | Stores JARs, Docker images, and Helm charts |
+| **Helm** | K8s Package Manager | Packages and K8s configs |
+| **Kubernetes** | Runtime Platform | Runs, scales, and heals Pods |
 
 ## 📜 Declarative Configuration
 
-Modern workflows use "Code" to describe "Infrastructure."
+Modern systems use "code" to describe both:
+- how things are run (process)
+- what the system should look like (state)
 
-### 🚀 Jenkinsfile (The Script)
-Defines the **Process**.
-It tells Jenkins: "First pull from GitHub, then run Maven, then build the Docker image, and finally push to JFrog."
+### 🚀 Jenkinsfile (The Process)
 
-### ☸️ K8s YAML (The Manifest)
-Defines the **State**.
-It tells Kubernetes: "I want 3 replicas of this Java Pod running, using this specific image from JFrog, with a 1GB memory limit."
+Defines **how** the pipline runs.
 
-## 🏡 Containers vs. Virtual Machines
+Example responsibilities:
+1. Pull code from GitHub
+1. Run Maven build and tests
+1. Build Docker image
+1. Push image to JFrog
+1. Deploy using Helm
 
-Understanding the difference between a **Container** and a **VM** is crucial for workflow automation.
-Think of it as **Renting a Room** vs. **Buying a Whole House**.
+Jenkinsfile answers:
+> "In what order do steps happen?"
 
-| Feature | Containers (Docker/K8s) | Virtual Machines (VMware/VirtualBox) |
-| :--- | :--- | :--- |
-| **Isolation** | Process-level (Shares Host OS Kernel) | Hardware-level (Includes full Guest OS) |
-| **Size** | Lightweight (MBs) | Heavyweight (GBs) |
-| **Startup** | Seconds (Instant) | Minutes (Full Boot) |
-| **Efficiency** | High (Run hundreds on one host) | Lower (Resource overhead for each OS) |
+### ☸️ K8s YAML (The State)
 
-### 🏘️ Virtual Machine: The Whole House
-A VM is a complete "virtual computer."
-If you want to run a Java app, you must install a full operating system (Windows/Linux) inside the VM first.
-- **Pros:** Extremely secure; if one VM's OS crashes, it doesn't affect others.
-- **Cons:** High waste of resources; you "pay" for 5 operating systems just to run 5 apps.
+Defines **what the system should look like**.
 
-### 🏢 Container: The Apartment Complex
-Containers share the host's operating system but live in their own "private rooms."
-- **Pros:** Fast and efficient. Since they share the "plumbing" (OS Kernel), they start instantly and use very little memory.
-- **Cons:** Less isolation; if the host OS kernel has a critical failure, all containers on that host may be affected.
+Examples:
+- number of replicas
+- container image version
+- CPU/memory limits
+- environment variables
+
+Kubernetes continuously reconciles:
+> **desired state** vs **actual state**
 
 ## 📦 Helm Charts (Declarative Packaging for Kubernetes)
 
-In real-world Kubernetes systems, teams do not deploy raw K8s YAML directly.
-They use Helm charts, which act as a packaging and configuration layer on top of Kubernetes.
+In real-world Kubernetes systems, teams rarely deploy raw K8s YAML directly.
+
+Instead, they use **Helm charts**, which add:
+- structure
+- templating
+- versioning
+- reuse
+
+Helm sits *between* Jenkins and Kubernetes.
 
 ### 🎁 Helm Chart (The Package)
 
-A Helm chart is a versioned bundle of:
-- Kubernetes YAML templates
-- Default configuration values
+A **Helm chart** is a versioned bundle containing:
+
+- Kubernetes YAML **templates**
+- Default configuration **values**
 - Metadata describing the application
 
 It answers the question:
 
 > “How do we deploy this application consistently across environments?”
 
-Think of a Helm chart as:
+Mental model:
 
-> Maven POM + application.yml + install script — for Kubernetes
+> **Helm chart = Maven POM + application.yml + install script — for Kubernetes**
 
-### 🧩 Helm vs. Raw K8s YAML
+### 🧩 Helm vs. Raw Kubernetes YAML
 
-AspectRaw K8s YAMLHelm ChartReusabilityLowHighEnvironment supportCopy & edit filesValues overrideVersioningManualBuilt‑inRollbackManualOne commandEnterprise usageRareStandard
+| Aspect | Raw K8s YAML | Helm Chart |
+|------|-------------|------------|
+| Reusability | Low | High |
+| Environment support | Copy & edit files | Values override |
+| Versioning | Manual | Built-in |
+| Rollback | Manual | One command |
+| Enterprise usage | Rare | Standard |
 
 🗂️ Helm Chart Structure (Conceptual)
 
-```bash
+```text
 my-service/
 ├── Chart.yaml        # Metadata (name, version)
 ├── values.yaml       # Default config
@@ -114,25 +133,60 @@ my-service/
 ```
 
 - **Templates** define structure
-- **values** define environment‑specific configuration
+- **Values** supply environment-specific configuration
 
 ### 🔄 Helm’s Role in the CI/CD Flow
 
-Helm does not replace Kubernetes and does not run inside the cluster.
+Helm does **not** replace Kubernetes and does **not** run inside the cluster.
 
-Instead:
-1. Jenkins runs Helm
-1. Helm renders templates into plain K8s YAML
-1. Helm submits that YAML to the Kubernetes API
-
-```bash
+Typical flow:
+```text
 Jenkinsfile
-   ↓
+    ↓
 helm upgrade --install
-   ↓
-Rendered K8s YAML
-   ↓
-Kubernetes API
+    ↓
+Rendered Kubernetes YAML
+    ↓
+Kubernetes API Server
 ```
 
-Kubernetes itself never sees the Helm chart — only final YAML.
+Kubernetes itself never sees the Helm charts — it only receives **plain YAML**.
+
+## 🏡 Containers vs. Virtual Machines
+
+Think of it as:
+> **Renting a room** vs. **Buying a whole house**
+
+| Feature | Containers (Docker/K8s) | Virtual Machines (VMware/VirtualBox) |
+| :--- | :--- | :--- |
+| **Isolation** | Process-level (shared kernel) | Hardware-level (guest OS) |
+| **Size** | Lightweight (MBs) | Heavyweight (GBs) |
+| **Startup** | Seconds | Minutes |
+| **Efficiency** | High (Run hundreds on one host)| Lower (Resource overhead for each OS) |
+
+### 🏘️ Virtual Machine: The Whole House
+A VM is a full virtual computer:
+- includes its own OS
+- runs independently
+
+**Pros**
+- Strong isolation
+- OS-level fault containment
+
+**Cons**
+- High resource cost
+- Slow startup
+- OS overhead per app
+
+### 🏢 Container: The Apartment Complex
+
+Containers share the host OS kernel but live in isolated environments.
+
+**Pros**
+- Fast startup
+- High density
+- Efficient resource usage
+
+**Cons**
+- Weaker isolation than VMs
+- Kernel-level issues affect all containers
