@@ -190,3 +190,157 @@ Containers share the host OS kernel but live in isolated environments.
 **Cons**
 - Weaker isolation than VMs
 - Kernel-level issues affect all containers
+
+## 🧬 Full Enterprise CI/CD → Kubernetes Pipeline
+
+### 📍 High‑Level Flow (Control Perspective)
+
+```text
+Developer
+   |
+   | git commit / pull request
+   v
+GitHub Enterprise (SCM)
+   |
+   | webhook trigger
+   v
+Jenkins (CI/CD Orchestrator)
+   |
+   |-----------------------------|
+   |                             |
+   v                             v
+Maven                         Docker Build
+(Java Build)                  (Image Build)
+   |                             |
+   | .jar                         | image:tag
+   v                             v
+JFrog Artifactory (Artifacts & Images)
+   |
+   | Helm deploy
+   v
+Kubernetes API Server
+   |
+   v
+Kubernetes Cluster
+   |
+   v
+Pods running on Nodes
+```
+
+### 🔍 Detailed Pipeline (Stage-by-Stage)
+
+```text
+
+┌──────────────────────────────────────────────────────────┐
+│ 1. Source Control                                         │
+│                                                          │
+│ Developer pushes code                                    │
+│  - Java source                                           │
+│  - Jenkinsfile                                           │
+│  - Helm chart                                            │
+│                                                          │
+│ GitHub Enterprise                                        │
+└──────────────────────────────────────────────────────────┘
+               │
+               │ webhook
+               ▼
+┌──────────────────────────────────────────────────────────┐
+│ 2. CI Orchestration (Jenkins)                             │
+│                                                          │
+│ Jenkinsfile defines pipeline steps                        │
+│                                                          │
+│ - checkout code                                          │
+│ - mvn clean package                                      │
+│ - docker build                                           │
+│ - docker push                                            │
+│ - helm upgrade --install                                 │
+└──────────────────────────────────────────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────────────────────────┐
+│ 3. Build Artifacts                                       │
+│                                                          │
+│ Maven                                                    │
+│ - compiles Java                                          │
+│ - runs tests                                             │
+│ - produces .jar                                         │
+│                                                          │
+│ Docker                                                   │
+│ - wraps JAR + JRE into image                             │
+│ - tags image (e.g. app:1.2.0)                            │
+└──────────────────────────────────────────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────────────────────────┐
+│ 4. Artifact Storage (JFrog Artifactory)                  │
+│                                                          │
+│ Stores:                                                  │
+│ - JAR files                                              │
+│ - Docker images                                         │
+│ - Helm charts                                           │
+│                                                          │
+│ Provides immutable, versioned artifacts                  │
+└──────────────────────────────────────────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────────────────────────┐
+│ 5. Deployment Packaging (Helm)                           │
+│                                                          │
+│ Jenkins runs Helm:                                       │
+│                                                          │
+│   helm upgrade --install                                 │
+│     my-service                                           │
+│     --values values-prod.yaml                            │
+│                                                          │
+│ Helm renders templates + values                          │
+│ into plain Kubernetes YAML                               │
+└──────────────────────────────────────────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────────────────────────┐
+│ 6. Kubernetes Control Plane                              │
+│                                                          │
+│ Kubernetes API Server receives YAML                      │
+│                                                          │
+│ - desired state stored in etcd                           │
+│ - scheduler selects nodes                                │
+│ - controllers reconcile state                            │
+└──────────────────────────────────────────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────────────────────────┐
+│ 7. Kubernetes Runtime                                    │
+│                                                          │
+│ Worker Nodes                                             │
+│ - kubelet starts Pods                                    │
+│ - containers pull images from JFrog                      │
+│                                                          │
+│ Result:                                                  │
+│ - Pods running                                           │
+│ - Services exposed                                       │
+│ - App available                                          │
+└──────────────────────────────────────────────────────────┘
+```
+
+### 🧠 Control vs Data Plane (Important Mental Model)
+
+```text
+
+Control Plane (decides)
+-----------------------
+GitHub
+Jenkins
+Helm
+Kubernetes API
+Scheduler
+Controllers
+
+Data Plane (executes)
+---------------------
+Worker Nodes
+Pods
+Containers
+```
+
+Automation engineers mainly work in the **control plane**.
+Application code lives in the **data plane**.
