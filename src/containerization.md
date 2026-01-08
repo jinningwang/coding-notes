@@ -212,7 +212,7 @@ Jenkins (CI/CD Orchestrator)
 Maven                         Docker Build
 (Java Build)                  (Image Build)
    |                             |
-   | .jar                         | image:tag
+   | .jar                        | image:tag
    v                             v
 JFrog Artifactory (Artifacts & Images)
    |
@@ -232,7 +232,7 @@ Pods running on Nodes
 ```text
 
 ┌──────────────────────────────────────────────────────────┐
-│ 1. Source Control                                         │
+│ 1. Source Control                                        │
 │                                                          │
 │ Developer pushes code                                    │
 │  - Java source                                           │
@@ -245,9 +245,9 @@ Pods running on Nodes
                │ webhook
                ▼
 ┌──────────────────────────────────────────────────────────┐
-│ 2. CI Orchestration (Jenkins)                             │
+│ 2. CI Orchestration (Jenkins)                            │
 │                                                          │
-│ Jenkinsfile defines pipeline steps                        │
+│ Jenkinsfile defines pipeline steps                       │
 │                                                          │
 │ - checkout code                                          │
 │ - mvn clean package                                      │
@@ -263,7 +263,7 @@ Pods running on Nodes
 │ Maven                                                    │
 │ - compiles Java                                          │
 │ - runs tests                                             │
-│ - produces .jar                                         │
+│ - produces .jar                                          │
 │                                                          │
 │ Docker                                                   │
 │ - wraps JAR + JRE into image                             │
@@ -276,8 +276,8 @@ Pods running on Nodes
 │                                                          │
 │ Stores:                                                  │
 │ - JAR files                                              │
-│ - Docker images                                         │
-│ - Helm charts                                           │
+│ - Docker images                                          │
+│ - Helm charts                                            │
 │                                                          │
 │ Provides immutable, versioned artifacts                  │
 └──────────────────────────────────────────────────────────┘
@@ -343,4 +343,5 @@ Containers
 ```
 
 Automation engineers mainly work in the **control plane**.
+
 Application code lives in the **data plane**.
