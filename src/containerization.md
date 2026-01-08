@@ -35,11 +35,12 @@ For an enterprise Java environment, these "software" tools work together in a sy
 
 | Tool | Role | Function |
 | :--- | :--- | :--- |
-| **GitHub Ent.** | SCM (Source Control) | Stores the Java source code and `Jenkinsfile`. |
-| **Maven** | Build Tool | Compiles code, runs tests, and creates the `.jar`. |
-| **Jenkins** | Orchestrator | The "Commander" that triggers the workflow stages. |
-| **JFrog** | Artifact Manager | Stores the built `.jar` files and Docker Images. |
-| **Kubernetes** | Runtime Platform | The "Manager" that runs and scales the Pods. |
+| **GitHub Ent.** | SCM (Source Control) | Stores the Java source code and `Jenkinsfile` |
+| **Maven** | Build Tool | Compiles code, runs tests, and creates the `.jar` |
+| **Jenkins** | Orchestrator | The "Commander" that triggers the workflow stages |
+| **JFrog** | Artifact Manager | Stores the built `.jar` files and Docker Images |
+| **Helm** | K8s Package Manager | Packages and deploys application configs |
+| **Kubernetes** | Runtime Platform | The "Manager" that runs and scales the Pods |
 
 ## 📜 Declarative Configuration
 
@@ -75,3 +76,63 @@ If you want to run a Java app, you must install a full operating system (Windows
 Containers share the host's operating system but live in their own "private rooms."
 - **Pros:** Fast and efficient. Since they share the "plumbing" (OS Kernel), they start instantly and use very little memory.
 - **Cons:** Less isolation; if the host OS kernel has a critical failure, all containers on that host may be affected.
+
+## 📦 Helm Charts (Declarative Packaging for Kubernetes)
+
+In real-world Kubernetes systems, teams do not deploy raw K8s YAML directly.
+They use Helm charts, which act as a packaging and configuration layer on top of Kubernetes.
+
+### 🎁 Helm Chart (The Package)
+
+A Helm chart is a versioned bundle of:
+- Kubernetes YAML templates
+- Default configuration values
+- Metadata describing the application
+
+It answers the question:
+
+> “How do we deploy this application consistently across environments?”
+
+Think of a Helm chart as:
+
+> Maven POM + application.yml + install script — for Kubernetes
+
+### 🧩 Helm vs. Raw K8s YAML
+
+AspectRaw K8s YAMLHelm ChartReusabilityLowHighEnvironment supportCopy & edit filesValues overrideVersioningManualBuilt‑inRollbackManualOne commandEnterprise usageRareStandard
+
+🗂️ Helm Chart Structure (Conceptual)
+
+```bash
+my-service/
+├── Chart.yaml        # Metadata (name, version)
+├── values.yaml       # Default config
+├── values-prod.yaml  # Env overrides
+└── templates/
+    ├── deployment.yaml
+    └── service.yaml
+```
+
+- **Templates** define structure
+- **values** define environment‑specific configuration
+
+### 🔄 Helm’s Role in the CI/CD Flow
+
+Helm does not replace Kubernetes and does not run inside the cluster.
+
+Instead:
+1. Jenkins runs Helm
+1. Helm renders templates into plain K8s YAML
+1. Helm submits that YAML to the Kubernetes API
+
+```bash
+Jenkinsfile
+   ↓
+helm upgrade --install
+   ↓
+Rendered K8s YAML
+   ↓
+Kubernetes API
+```
+
+Kubernetes itself never sees the Helm chart — only final YAML.
