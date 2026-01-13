@@ -1,6 +1,6 @@
-# Containerization
+# Containerization & GitOps
 
-## 🧠 Images, Containers, and Pods
+## 🧠 Core Concepts: Images, Containers, and Pods
 
 - 📦 **Images (The Blueprint)** A read-only template (like a recipe) containing the code, libraries, and environment needed to run an application.
 - 🏃 **Containers (The Instance)** A live, running instance of an image (like the dish cooked from a recipe). Containers are isolated processes but share the host OS kernel.
@@ -38,16 +38,17 @@ Common patterns:
 
 ## 🛠️ The Automation Toolchain (CI/CD)
 
-For an enterprise Java environment, these tools work together in a coordinated pipeline:
+In a modern **GitOps** environment, the pipeline is split into **CI** (Building) and **CD** (Deploying).
 
 | Tool | Role | Function |
 | :--- | :--- | :--- |
-| **GitHub Ent.** | SCM (Source Control) | Stores the Java source code, Jenkinsfile, and Helm charts |
+| **GitHub Ent.** | SCM | **Source of Truth**. Stores code AND the desired state (Helm). |
 | **Maven** | Build Tool | Compiles code, runs tests, produces the `.jar` |
-| **Jenkins** | Orchestrator | Drive the CI/CD workflow |
-| **JFrog** | Artifact Manager | Stores JARs, Docker images, and Helm charts |
-| **Helm** | K8s Package Manager | Packages and K8s configs |
-| **Kubernetes** | Runtime Platform | Runs, scales, and heals Pods |
+| **Jenkins** | CI Engine | **The Orchestrator**. Runs tests and builds/pushes images. |
+| **JFrog** | Registry | Stores the versioned Docker images and Helm charts. |
+| **Helm** | Packager | Templates the K8s YAML so it can be reused across environments. |
+| **Argo CD** | CD Engine | **The Controller.** Pulls from Git and "syncs" it to the cluster. |
+| **Kubernetes** | Runtime | The platform where the Pods actually live and run. |
 
 ## 📜 Declarative Configuration
 
@@ -191,157 +192,54 @@ Containers share the host OS kernel but live in isolated environments.
 - Weaker isolation than VMs
 - Kernel-level issues affect all containers
 
-## 🧬 Full Enterprise CI/CD → Kubernetes Pipeline
+## 🧬 Full GitOps Pipeline Flow
 
-### 📍 High‑Level Flow (Control Perspective)
+### Phase 1: The CI Loop (Jenkins)
 
-```text
-Developer
-   |
-   | git commit / pull request
-   v
-GitHub Enterprise (SCM)
-   |
-   | webhook trigger
-   v
-Jenkins (CI/CD Orchestrator)
-   |
-   |-----------------------------|
-   |                             |
-   v                             v
-Maven                         Docker Build
-(Java Build)                  (Image Build)
-   |                             |
-   | .jar                        | image:tag
-   v                             v
-JFrog Artifactory (Artifacts & Images)
-   |
-   | Helm deploy
-   v
-Kubernetes API Server
-   |
-   v
-Kubernetes Cluster
-   |
-   v
-Pods running on Nodes
-```
+1. **Push**: Developer pushes code to the App Repo.
 
-### 🔍 Detailed Pipeline (Stage-by-Stage)
+2. **Build**: Jenkins triggers, runs Maven to create a JAR.
 
-```text
+3. **Package**: Jenkins builds a Docker Image (JAR + JRE).
 
-┌──────────────────────────────────────────────────────────┐
-│ 1. Source Control                                        │
-│                                                          │
-│ Developer pushes code                                    │
-│  - Java source                                           │
-│  - Jenkinsfile                                           │
-│  - Helm chart                                            │
-│                                                          │
-│ GitHub Enterprise                                        │
-└──────────────────────────────────────────────────────────┘
-               │
-               │ webhook
-               ▼
-┌──────────────────────────────────────────────────────────┐
-│ 2. CI Orchestration (Jenkins)                            │
-│                                                          │
-│ Jenkinsfile defines pipeline steps                       │
-│                                                          │
-│ - checkout code                                          │
-│ - mvn clean package                                      │
-│ - docker build                                           │
-│ - docker push                                            │
-│ - helm upgrade --install                                 │
-└──────────────────────────────────────────────────────────┘
-               │
-               ▼
-┌──────────────────────────────────────────────────────────┐
-│ 3. Build Artifacts                                       │
-│                                                          │
-│ Maven                                                    │
-│ - compiles Java                                          │
-│ - runs tests                                             │
-│ - produces .jar                                          │
-│                                                          │
-│ Docker                                                   │
-│ - wraps JAR + JRE into image                             │
-│ - tags image (e.g. app:1.2.0)                            │
-└──────────────────────────────────────────────────────────┘
-               │
-               ▼
-┌──────────────────────────────────────────────────────────┐
-│ 4. Artifact Storage (JFrog Artifactory)                  │
-│                                                          │
-│ Stores:                                                  │
-│ - JAR files                                              │
-│ - Docker images                                          │
-│ - Helm charts                                            │
-│                                                          │
-│ Provides immutable, versioned artifacts                  │
-└──────────────────────────────────────────────────────────┘
-               │
-               ▼
-┌──────────────────────────────────────────────────────────┐
-│ 5. Deployment Packaging (Helm)                           │
-│                                                          │
-│ Jenkins runs Helm:                                       │
-│                                                          │
-│   helm upgrade --install                                 │
-│     my-service                                           │
-│     --values values-prod.yaml                            │
-│                                                          │
-│ Helm renders templates + values                          │
-│ into plain Kubernetes YAML                               │
-└──────────────────────────────────────────────────────────┘
-               │
-               ▼
-┌──────────────────────────────────────────────────────────┐
-│ 6. Kubernetes Control Plane                              │
-│                                                          │
-│ Kubernetes API Server receives YAML                      │
-│                                                          │
-│ - desired state stored in etcd                           │
-│ - scheduler selects nodes                                │
-│ - controllers reconcile state                            │
-└──────────────────────────────────────────────────────────┘
-               │
-               ▼
-┌──────────────────────────────────────────────────────────┐
-│ 7. Kubernetes Runtime                                    │
-│                                                          │
-│ Worker Nodes                                             │
-│ - kubelet starts Pods                                    │
-│ - containers pull images from JFrog                      │
-│                                                          │
-│ Result:                                                  │
-│ - Pods running                                           │
-│ - Services exposed                                       │
-│ - App available                                          │
-└──────────────────────────────────────────────────────────┘
-```
+4. **Publish**: Jenkins pushes the image to JFrog Artifactory.
 
-### 🧠 Control vs Data Plane (Important Mental Model)
+5. **Update**: Jenkins updates the image.tag in the Config Git Repo.
+> Note: In GitOps, Jenkins does NOT talk to Kubernetes. It only talks to Git.
 
-```text
+### Phase 2: The CD Loop (Argo CD)
 
-Control Plane (decides)
------------------------
-GitHub
-Jenkins
-Helm
-Kubernetes API
-Scheduler
-Controllers
+1. **Detect**: Argo CD (living inside the K8s cluster) notices a new commit in the **Config Git Repo**.
 
-Data Plane (executes)
----------------------
-Worker Nodes
-Pods
-Containers
-```
+2. **Render**: Argo CD pulls the **Helm Chart** and applies the new "Values" (the new image tag).
 
-Automation engineers mainly work in the **control plane**.
+3. **Reconcile**: Argo CD compares the "Desired State" (Git) with the "Actual State" (Cluster).
 
-Application code lives in the **data plane**.
+4. **Sync**: Argo CD instructs the Kubernetes API to update the Pods to the new version.
+
+## 🛰️ Argo CD: The "Pull" Model
+
+### Why use Argo CD instead of Jenkins for deployment?
+
+1. **Self-Healing:** If someone manually deletes a Pod (drift), Argo CD detects it and recreates it automatically to match Git.
+
+2. **The "Single Source of Truth":** You can look at Git and know exactly what is running in Production without needing kubectl access.
+
+3. **Visibility:** Argo CD provides a visual dashboard showing the health of every resource in your application.
+
+### 🔄 Comparison: Push vs. Pull
+
+| Feature | Jenkins "Push" (Traditional) | Argo CD "Pull" (GitOps) |
+| :--- | :--- | :--- |
+| **Source of Truth** | Jenkins Scripts | Git Repository |
+| **Drift Detection** |	None (until next build)	| Continuous (every few minutes) |
+| **Security** | Jenkins needs Cluster Admin keys | Jenkins only needs Git access |
+| **Visibility** | Log files | Visual Tree UI |
+
+## Mental Model: The Property Manager
+
+- **Docker Image:** The blueprints for the apartment units.
+- **Kubernetes:** The apartment building.
+- **Helm:** The standardized lease and furnishing options.
+- **Argo CD: The Property Manager.** - They carry a clipboard (**Git**) that lists exactly how every room should look.
+    - If a tenant tries to change the locks or paint a wall (**Manual Change**), the Property Manager sees it doesn't match the clipboard and immediately resets it to the "Desired State."
